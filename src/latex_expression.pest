@@ -1,0 +1,20 @@
+number = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+variable = @{ ASCII_ALPHA ~ ("_" ~ ASCII_ALPHANUMERIC)? }
+unary_prefix_operator = _{ negate }
+    negate = { "-" }
+unary_postfix_operator = _{ factorial }
+    factorial = { "!" }
+binary_operator = _{ plus | minus | cdot | asterisk | slash }
+    plus = { "+" }
+    minus = { "-" }
+    cdot = { "\\cdot" }
+    asterisk = { "*" }
+    slash = { "/" }
+paren_expression = { "(" ~ expression ~ ")" }
+implicit_multiplication = ${ (number | variable) ~ (variable | paren_expression)+ }
+primary = _{ implicit_multiplication | paren_expression | number | variable }
+atom = _{ unary_prefix_operator ~ primary | primary ~ unary_postfix_operator | primary }
+
+expression = _{ atom ~ (binary_operator ~ atom)* }
+
+WHITESPACE = _{ " " }
