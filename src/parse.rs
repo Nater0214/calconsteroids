@@ -31,16 +31,30 @@ pub fn parse_latex(input: &str) -> Result<Pairs<Rule>, pest::error::Error<Rule>>
 pub fn parse_pairs(pairs: Pairs<Rule>) -> Expression {
     PARSER
         .map_primary(|primary| match primary.as_rule() {
-            Rule::number => Expression::Value(primary.as_str().parse().unwrap()),
-            Rule::variable => Expression::Variable(primary.as_str().to_string()),
+            Rule::number => Expression::Value(
+                primary
+                    .as_str()
+                    .parse()
+                    .unwrap(),
+            ),
+            Rule::variable => Expression::Variable(
+                primary
+                    .as_str()
+                    .to_string(),
+            ),
             Rule::implicit_multiplication => {
-                let mut inner = primary.into_inner();
-                let first = Pairs::single(inner.next().unwrap());
-                let second = Pairs::single(inner.next().unwrap());
-                Expression::Multiplication(
-                    Box::new(parse_pairs(first)),
-                    Box::new(parse_pairs(second)),
-                )
+                let mut inner = primary
+                    .into_inner()
+                    .rev();
+                let mut expression = parse_pairs(Pairs::single(
+                    inner
+                        .next()
+                        .unwrap(),
+                ));
+                for pair in inner {
+                    expression = Expression::Multiplication(Box::new(parse_pairs(Pairs::single(pair))), Box::new(expression));
+                }
+                expression
             }
             Rule::paren_expression => parse_pairs(primary.into_inner()),
             Rule::expression => parse_pairs(primary.into_inner()),

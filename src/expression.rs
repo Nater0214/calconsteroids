@@ -5,6 +5,18 @@ use crate::value::Value;
 /// A map of strings to variables
 pub type VariableMap = HashMap<String, Value>;
 
+/// An evaluation error
+pub enum EvaluationError {
+    /// Expression variant can't be evaluated
+    CantEvaluateVariant,
+}
+
+/// A solving error
+pub enum SolvingError {
+    /// Expression variant cant be solved
+    CantSolveVariant,
+}
+
 /// An expression
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -12,6 +24,7 @@ pub enum Expression {
     Value(Value),
     /// A variable
     Variable(String),
+
     /// An addition expression
     Addition(Box<Expression>, Box<Expression>),
     /// A subtraction expression
@@ -24,6 +37,9 @@ pub enum Expression {
     Negation(Box<Expression>),
     /// A factorial
     Factorial(Box<Expression>),
+
+    /// An equals expression
+    Equals(Box<Expression>, Box<Expression>),
 }
 
 impl Expression {
@@ -68,12 +84,9 @@ impl Expression {
                     Expression::Division(Box::new(a), Box::new(b))
                 }
             }
-            Expression::Negation(expression) => {
-                Expression::Negation(Box::new(expression.simplified()))
-            }
-            Expression::Factorial(expression) => {
-                Expression::Factorial(Box::new(expression.simplified()))
-            }
+            Expression::Negation(expression) => Expression::Negation(Box::new(expression.simplified())),
+            Expression::Factorial(expression) => Expression::Factorial(Box::new(expression.simplified())),
+            Expression::Equals(a, b) => Expression::Equals(Box::new(a.simplified()), Box::new(b.simplified())),
         }
     }
 
@@ -84,16 +97,22 @@ impl Expression {
     }
 
     /// Evaluate the expression
-    pub fn evaluate(&self, variable_map: &VariableMap) -> Value {
+    pub fn evaluate(&self, variable_map: &VariableMap) -> Result<Value, EvaluationError> {
         match self {
-            Expression::Value(v) => v.to_owned(),
-            Expression::Variable(n) => variable_map.get(n).unwrap_or(&Value::Undefined).to_owned(),
-            Expression::Addition(a, b) => a.evaluate(variable_map) + b.evaluate(variable_map),
-            Expression::Subtraction(a, b) => a.evaluate(variable_map) - b.evaluate(variable_map),
-            Expression::Multiplication(a, b) => a.evaluate(variable_map) * b.evaluate(variable_map),
-            Expression::Division(a, b) => a.evaluate(variable_map) / b.evaluate(variable_map),
-            Expression::Negation(expression) => -expression.evaluate(variable_map),
-            Expression::Factorial(expression) => expression.evaluate(variable_map).factorial(),
+            Expression::Value(v) => Ok(v.to_owned()),
+            Expression::Variable(n) => Ok(variable_map
+                .get(n)
+                .unwrap_or(&Value::Undefined)
+                .to_owned()),
+            Expression::Addition(a, b) => Ok(a.evaluate(variable_map)? + b.evaluate(variable_map)?),
+            Expression::Subtraction(a, b) => Ok(a.evaluate(variable_map)? - b.evaluate(variable_map)?),
+            Expression::Multiplication(a, b) => Ok(a.evaluate(variable_map)? * b.evaluate(variable_map)?),
+            Expression::Division(a, b) => Ok(a.evaluate(variable_map)? / b.evaluate(variable_map)?),
+            Expression::Negation(expression) => Ok(-expression.evaluate(variable_map)?),
+            Expression::Factorial(expression) => Ok(expression
+                .evaluate(variable_map)?
+                .factorial()),
+            Expression::Equals(_, _) => Err(EvaluationError::CantEvaluateVariant),
         }
     }
 }
@@ -110,10 +129,11 @@ impl fmt::Display for Expression {
                 (Expression::Variable(a), Expression::Variable(b)) => write!(f, "{a}{b}"),
                 (Expression::Value(a), b) => write!(f, "{a}{b}"),
                 (a, b) => write!(f, "({a} * {b})"),
-            }
+            },
             Expression::Division(a, b) => write!(f, "({a} / {b})"),
             Expression::Negation(expression) => write!(f, "-({expression})"),
             Expression::Factorial(expression) => write!(f, "({expression})!"),
+            Expression::Equals(a, b) => write!(f, "({a} = {b})"),
         }
     }
 }

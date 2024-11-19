@@ -24,6 +24,7 @@ pub type ValueResult = Result<Value, ValueError>;
 pub enum Value {
     Rational(i128, i128),
     Expression(Box<Expression>),
+    Boolean(bool),
     Undefined,
 }
 
@@ -75,21 +76,23 @@ impl FromStr for Value {
         };
 
         // Parse the integer part
-        let integer = integer.parse::<i128>().map_err(|_| ValueParseError {
-            string: s.to_string(),
-        })?;
+        let integer = integer
+            .parse::<i128>()
+            .map_err(|_| ValueParseError { string: s.to_string() })?;
 
         // Parse the decimal part if any
         let decimal = match decimal {
-            Some(decimal) => decimal.parse::<i128>().map_err(|_| ValueParseError {
-                string: s.to_string(),
-            })?,
+            Some(decimal) => decimal
+                .parse::<i128>()
+                .map_err(|_| ValueParseError { string: s.to_string() })?,
             None => 0,
         };
 
         // Determine the exponent to multiply the value by to make it an integer
         // This is done by taking the common log of the decimal part
-        let exponent = decimal.checked_ilog10().unwrap_or(0);
+        let exponent = decimal
+            .checked_ilog10()
+            .unwrap_or(0);
 
         // Determine the numerator
         // This is done by multiplying the integer part by 10^exponent and adding the decimal part
@@ -109,7 +112,11 @@ impl Into<f64> for Value {
         match self {
             Value::Rational(numerator, denominator) => numerator as f64 / denominator as f64,
             Value::Undefined => f64::NAN,
-            Value::Expression(expression) => expression.evaluate(&VariableMap::new()).into(),
+            Value::Expression(expression) => expression
+                .evaluate(&VariableMap::new())
+                .unwrap_or(Value::Undefined)
+                .into(),
+            Value::Boolean(_) => f64::NAN,
         }
     }
 }
@@ -154,10 +161,7 @@ impl Mul for Value {
     /// Multiply two values by performing the `*` operation
     fn mul(self, other: Self) -> Self {
         match (self, other) {
-            (Value::Rational(self_num, self_den), Value::Rational(other_num, other_den)) => {
-                simplify_rational(Self::Rational(self_num * other_num, self_den * other_den))
-                    .unwrap()
-            }
+            (Value::Rational(self_num, self_den), Value::Rational(other_num, other_den)) => simplify_rational(Self::Rational(self_num * other_num, self_den * other_den)).unwrap(),
             _ => Self::Undefined,
         }
     }
@@ -169,10 +173,7 @@ impl Div for Value {
     /// Divide two values by performing the `/` operation
     fn div(self, other: Self) -> Self {
         match (self, other) {
-            (Value::Rational(self_num, self_den), Value::Rational(other_num, other_den)) => {
-                simplify_rational(Self::Rational(self_num * other_den, self_den * other_num))
-                    .unwrap()
-            }
+            (Value::Rational(self_num, self_den), Value::Rational(other_num, other_den)) => simplify_rational(Self::Rational(self_num * other_den, self_den * other_num)).unwrap(),
             _ => Self::Undefined,
         }
     }
@@ -184,9 +185,7 @@ impl Neg for Value {
     /// Negate a value by performing the `-` operation
     fn neg(self) -> Self {
         match self {
-            Value::Rational(numerator, denominator) => {
-                simplify_rational(Self::Rational(-numerator, denominator)).unwrap()
-            }
+            Value::Rational(numerator, denominator) => simplify_rational(Self::Rational(-numerator, denominator)).unwrap(),
             _ => Self::Undefined,
         }
     }
@@ -216,9 +215,7 @@ impl Value {
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (&Value::Rational(self_num, self_den), &Value::Rational(other_num, other_den)) => {
-                self_num * other_den == other_num * self_den
-            }
+            (&Value::Rational(self_num, self_den), &Value::Rational(other_num, other_den)) => self_num * other_den == other_num * self_den,
             _ => false,
         }
     }
@@ -235,6 +232,7 @@ impl fmt::Display for Value {
                 }
             }
             Value::Expression(expression) => write!(f, "{expression}"),
+            Value::Boolean(boolean) => write!(f, "{boolean}"),
             Value::Undefined => write!(f, "undefined"),
         }
     }

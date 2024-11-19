@@ -14,7 +14,6 @@ fn main() {
 
     // Parse the expression
     let pairs = parse_latex(input).expect("Bad expression");
-    dbg!(&pairs);
     let expression = parse_pairs(pairs);
 
     // Print the simplified expression
