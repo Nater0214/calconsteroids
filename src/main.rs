@@ -17,5 +17,5 @@ fn main() {
     let expression = parse_pairs(pairs);
 
     // Print the simplified expression
-    println!("{}", expression.simplified());
+    println!("{}", expression.simplified().to_string());
 }

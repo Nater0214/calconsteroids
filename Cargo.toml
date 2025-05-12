@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+downcast-rs = "2.0.1"
+dyn-clone = "1.0.19"
 lazy_static = "1.5.0"
 num = "0.4.3"
-pest = "2.7.14"
-pest_derive = "2.7.14"
+pest = "2.7.15"
+pest_derive = "2.7.15"
 regex = "1.11.1"

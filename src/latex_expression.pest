@@ -7,12 +7,13 @@ negate                =  { "-" }
 unary_postfix_operator = _{ factorial }
 factorial              =  { "!" }
 
-binary_operator = _{ plus | minus | cdot | asterisk | slash }
+binary_operator = _{ plus | minus | cdot | asterisk | slash | carat }
 plus            =  { "+" }
 minus           =  { "-" }
 cdot            =  { "\\cdot" }
 asterisk        =  { "*" }
 slash           =  { "/" }
+carat           =  { "^" }
 
 paren_expression        =  { "(" ~ expression ~ ")" }
 implicit_multiplication = ${ (number | variable) ~ (variable | paren_expression)+ }
